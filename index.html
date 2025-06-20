@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bet Tracker Firebase</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>🎲 Bet Tracker (Firebase)</h1>
+  <section id="add-player">
+    <input id="player-name" placeholder="Enter new player name">
+    <button onclick="addPlayer()">Add Player</button>
+  </section>
+  <section>
+    <label for="winner">Winner:</label>
+    <select id="winner"></select>
+    <label for="loser">Loser:</label>
+    <select id="loser"></select>
+    <input id="amount" type="number" placeholder="Amount ₹">
+    <button onclick="addTransaction()">Record Transaction</button>
+  </section>
+  <button onclick="nextGame()">Next Game</button>
+
+  <h2>Debt Table</h2>
+  <table border="1" id="debt-table"></table>
+  <h2>Logs</h2>
+  <table border="1" id="log-table"></table>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+    import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAWCmj2UlvvRj445qBlP-OwNb-yTtZqruw",
+      authDomain: "betbalance-28d26.firebaseapp.com",
+      projectId: "betbalance-28d26",
+      storageBucket: "betbalance-28d26.firebasestorage.app",
+      messagingSenderId: "677802256822",
+      appId: "1:677802256822:web:65f6d6fcfa8fdb8825f917",
+      databaseURL: "https://betbalance-28d26-default-rtdb.asia-southeast1.firebasedatabase.app"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    let players = [];
+    let debts = {};
+    let logs = [];
+    let currentGame = 1;
+    const PIN = "9211";
+
+    async function fetchData() {
+      const snap = await get(ref(db, "sessionData"));
+      if (snap.exists()) {
+        const data = snap.val();
+        players = data.players || [];
+        debts = data.debts || {};
+        logs = Object.values(data.logs || {});
+        currentGame = data.currentGame || 1;
+        renderUI();
+      }
+    }
+
+    async function saveAll() {
+      const logsObj = logs.reduce((acc, log, i) => {
+        acc[`log${i}`] = log;
+        return acc;
+      }, {});
+      await set(ref(db, "sessionData"), { players, debts, logs: logsObj, currentGame });
+    }
+
+    async function addPlayer() {
+      const name = document.getElementById("player-name").value.trim();
+      if (!name || players.includes(name)) return;
+      players.push(name);
+      players.forEach(p => {
+        debts[p] = debts[p] || {};
+        players.forEach(q => {
+          if (p !== q) debts[p][q] = debts[p][q] || 0;
+        });
+      });
+      await saveAll();
+      renderUI();
+      document.getElementById("player-name").value = "";
+    }
+
+    async function addTransaction() {
+      const winner = document.getElementById("winner").value;
+      const loser = document.getElementById("loser").value;
+      const amount = parseFloat(document.getElementById("amount").value);
+      const entered = prompt("Enter PIN to confirm transaction:");
+      if (entered !== PIN) return alert("Wrong PIN");
+      if (!winner || !loser || winner === loser || isNaN(amount) || amount <= 0) return;
+
+      debts[loser][winner] += amount;
+      logs.push({ winner, loser, amount, time: Date.now(), game: currentGame });
+      await saveAll();
+      renderUI();
+      document.getElementById("amount").value = "";
+    }
+
+    async function nextGame() {
+      currentGame++;
+      await saveAll();
+      alert("Started Game " + currentGame);
+      renderUI();
+    }
+
+    function renderUI() {
+      const winnerSel = document.getElementById("winner");
+      const loserSel = document.getElementById("loser");
+      const debtTable = document.getElementById("debt-table");
+      const logTable = document.getElementById("log-table");
+
+      winnerSel.innerHTML = loserSel.innerHTML = "";
+      players.forEach(p => {
+        winnerSel.innerHTML += `<option value="${p}">${p}</option>`;
+        loserSel.innerHTML += `<option value="${p}">${p}</option>`;
+      });
+
+      let table = "<tr><th>From \\ To</th>" + players.map(p => `<th>${p}</th>`).join("") + "</tr>";
+      players.forEach(from => {
+        table += `<tr><td>${from}</td>` + players.map(to => `<td>${from === to ? '-' : debts[from][to]}</td>`).join("") + "</tr>";
+      });
+      debtTable.innerHTML = table;
+
+      logTable.innerHTML = logs.map(log => `<tr>
+        <td>${new Date(log.time).toLocaleString()}</td>
+        <td>${log.loser}</td>
+        <td>${log.winner}</td>
+        <td>₹${log.amount}</td>
+        <td>Game ${log.game}</td>
+      </tr>`).join("");
+    }
+
+    fetchData();
+  </script>
+</body>
+</html>
