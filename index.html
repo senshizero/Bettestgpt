@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>Bet Tracker Firebase</title>
@@ -20,14 +19,10 @@
     <input id="amount" type="number" placeholder="Amount ₹">
     <button onclick="addTransaction()">Record Transaction</button>
   </section>
-  <button onclick="nextGame()">Next Game</button>
-
-  <h2>Debt Table</h2>
+  <button onclick="nextGame()">Next Game</button>  <h2>Debt Table</h2>
   <table border="1" id="debt-table"></table>
   <h2>Logs</h2>
-  <table border="1" id="log-table"></table>
-
-  <script type="module">
+  <table border="1" id="log-table"></table>  <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
     import { getDatabase, ref, get, set, child } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
 
@@ -148,6 +143,5 @@
     }
 
     fetchData();
-  </script>
-</body>
+  </script></body>
 </html>
