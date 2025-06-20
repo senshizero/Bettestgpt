@@ -29,13 +29,13 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
-    import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
+    import { getDatabase, ref, get, set, child } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAWCmj2UlvvRj445qBlP-OwNb-yTtZqruw",
       authDomain: "betbalance-28d26.firebaseapp.com",
       projectId: "betbalance-28d26",
-      storageBucket: "betbalance-28d26.firebasestorage.app",
+      storageBucket: "betbalance-28d26.appspot.com",
       messagingSenderId: "677802256822",
       appId: "1:677802256822:web:65f6d6fcfa8fdb8825f917",
       databaseURL: "https://betbalance-28d26-default-rtdb.asia-southeast1.firebasedatabase.app"
@@ -51,14 +51,18 @@
     const PIN = "9211";
 
     async function fetchData() {
-      const snap = await get(ref(db, "sessionData"));
-      if (snap.exists()) {
-        const data = snap.val();
-        players = data.players || [];
-        debts = data.debts || {};
-        logs = Object.values(data.logs || {});
-        currentGame = data.currentGame || 1;
+      try {
+        const snap = await get(child(ref(db), "sessionData"));
+        if (snap.exists()) {
+          const data = snap.val();
+          players = data.players || [];
+          debts = data.debts || {};
+          logs = Object.values(data.logs || {});
+          currentGame = data.currentGame || 1;
+        }
         renderUI();
+      } catch (error) {
+        console.error("Error fetching data:", error);
       }
     }
 
@@ -67,7 +71,16 @@
         acc[`log${i}`] = log;
         return acc;
       }, {});
-      await set(ref(db, "sessionData"), { players, debts, logs: logsObj, currentGame });
+      try {
+        await set(ref(db, "sessionData"), {
+          players,
+          debts,
+          logs: logsObj,
+          currentGame
+        });
+      } catch (error) {
+        console.error("Error saving data:", error);
+      }
     }
 
     async function addPlayer() {
@@ -121,7 +134,7 @@
 
       let table = "<tr><th>From \\ To</th>" + players.map(p => `<th>${p}</th>`).join("") + "</tr>";
       players.forEach(from => {
-        table += `<tr><td>${from}</td>` + players.map(to => `<td>${from === to ? '-' : debts[from][to]}</td>`).join("") + "</tr>";
+        table += `<tr><td>${from}</td>` + players.map(to => `<td>${from === to ? '-' : debts[from][to]}</td>`).join("") + "</tr>`;
       });
       debtTable.innerHTML = table;
 
